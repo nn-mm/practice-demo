@@ -1,0 +1,86 @@
+-- 创建视图
+CREATE VIEW my1
+AS
+SELECT `id` FROM `author`;
+DESC my1;
+
+-- 练习
+-- 1.查询姓名中包含a字符的员工名，部门名和工种信息
+CREATE VIEW myv2
+AS
+SELECT last_name,department_name,j.*
+FROM employees e
+INNER JOIN departments d
+ON e.department_id=d.department_id
+INNER JOIN jobs j
+ON e.job_id=j.job_id;
+DESC myv2;
+SHOW CREATE VIEW myv2;
+SELECT * FROM myv2 WHERE last_name LIKE '%a%';
+SELECT * FROM myv2;
+
+-- 2.查询各部门的平均工资级别
+CREATE VIEW myv3
+AS
+SELECT avg(salary)
+FROM employees
+GROUP BY department_id;
+
+SELECT m.`avg(salary)`,`grade_level` FROM `job_grades`
+INNER JOIN myv3 m
+ON m.`avg(salary)` BETWEEN `lowest_sal` AND `highest_sal`;
+
+-- 3.查询平均工资最低的部门信息
+
+CREATE OR REPLACE VIEW myv4
+AS
+SELECT avg(salary),department_id FROM employees
+ORDER BY avg(salary)
+LIMIT 2;
+
+SELECT * FROM myv5;
+SELECT d.*,m.`avg(salary)`
+FROM departments d
+INNER JOIN myv4 m
+ON d.`department_id`=m.`department_id`;
+
+-- 4.查询平均工资最低的部门名和工资
+CREATE OR REPLACE VIEW myv5
+AS
+SELECT d.*,m.`avg(salary)`
+FROM departments d
+INNER JOIN myv4 m
+ON d.`department_id`=m.`department_id`;
+
+SELECT m.department_name,e.salary
+FROM myv5 m
+INNER JOIN employees e
+ON m.`department_id`=e.`department_id`;
+
+/*
+修改视图
+
+方式一：create or replace view 视图名
+         as
+         查询语句；
+         
+方式二：ater view 视图名
+         as
+         查询语句；
+*/
+
+
+/*
+删除视图
+
+drop view 视图名，视图名，..;
+*/
+
+
+/*
+查看视图
+一。desc 视图名；
+
+二。show create view 视图名；
+
+*/
