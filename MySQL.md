@@ -3057,4 +3057,311 @@ BEGIN
 END $
 CALL task11(1,2)-- 从第一条开始，查询两条记录
 ```
+## 函数
+
+- 函数与存储过程类似
+- 类似于Java中的方法（一组合法的代码被包装起来）
+
+好处：
+
+1. 提高了代码的重用性
+2. 简化操作
+3. 减少了编译次数和与数据库服务器的连接次数，提高了效率
+
+- 与存储过程的区别：
+
+存储过程可以没有返回值，也可以有多个返回值（适合批量插入数据），**但是函数有且仅有一个返回值**（适合处理一个数据返回结果）
+
+
+
+### 创建语法
+
+```sql
+--创建
+CREATE FUNCTION 函数名（参数列表）RETURNS 返回值类型
+BEGIN
+	函数体
+	RETURN 返回值（此语句可以没有放在最后也不报错，但是不建议）
+END $
+
+-- 调用
+SELECT 函数名（参数列表）
+
+```
+
+
+
+### 案例
+
+**无参有返回值**
+
+```sql
+-- 返回公司的员工个数
+DELIMITER $
+CREATE FUNCTION test_ft2() RETURNS INT
+BEGIN
+	DECLARE c INT DEFAULT 0;
+	SELECT count(*) INTO c
+	FROM employees;
+	RETURN c;
+END $
+SELECT test_ft2()$
+```
+
+
+
+**有参有返回值**
+
+```sql
+-- 案例一：根据员工名，返回员工工资
+DELIMITER $
+CREATE FUNCTION test_ft3(NAME VARCHAR(20)) RETURNS DOUBLE
+BEGIN
+	DECLARE sal DOUBLE DEFAULT 0;
+	SELECT salary INTO sal
+	FROM employees e
+	WHERE e.`last_name`=NAME;
+	RETURN sal;
+END $
+SELECT test_ft3('kochhar')$
+
+-- 案例二：根据部门名，返回该部门的平均工资
+DELIMITER $
+CREATE FUNCTION test_ft4 (dname VARCHAR(20)) RETURNS DOUBLE
+BEGIN 
+	DECLARE sal DOUBLE DEFAULT 0;
+	SELECT avg(salary) INTO sal 
+	FROM employees e
+	INNER JOIN departments d ON e.`department_id`=d.`department_id`
+	WHERE d.`department_name`=dname;
+	RETURN sal;
+END $
+SELECT test_ft4('Adm')
+
+-- 案例三：创建函数，传出两个float,返回两数的值
+DELIMITER $
+CREATE FUNCTION test_ft2(num1 FLOAT,num2 FLOAT)RETURNS FLOAT
+BEGIN
+	SET @sum:=0;
+	SELECT num1+num2 INTO @sum;
+	RETURN @sum;
+END $
+SELECT test_ft2(1,2)
+```
+
+**查看、删除函数**
+
+```sql
+-- 查看
+SHOW CREATE FUNCTION test_ft2;
+
+-- 删除
+DROP FUNCTION test_ft2;
+```
+
+
+
+## 流程控制结构
+
+### 顺序结构
+
+
+
+### 分支结构
+
+**1. if函数 ***
+
+```sql
+-- 功能：实现简单的双分支
+if（表达式1，表达式2，表达式3）
+-- 如果表达式1=true，则执行表达式2，反之执行表达式3
+应用：任何地方
+```
+
+
+
+**2.case结构**
+
+```sql
+(执行顺序：满足一个then之后后面的便不再执行，如果都不满足，则执行else后面的，else可省略，省略后都不满足则返回null)
+注意点：当then后是值的时候是作为表达式，可以在任何地方中使用
+当then后是语句时，则作为独立语句只能在begin end中使用
+/*
+情况1:类似于java中的switch语句实现等值判断
+语法：
+	case 变量\表达式\字段
+	when 要判断的值 then 返回值1\语句1;
+	when 要判断的值 then 返回值2\语句2;
+	...
+	else 要返回的值n或语句n;
+	end case;
+
+*/
+
+/*
+情况2:类似于java中的多重if语句实现区间判断
+语法：
+	case 
+	when 要判断的条件 then 返回值1\语句1;
+	when 要判断的条件 then 返回值2\语句2;
+	...
+	else 要返回的值n或语句n;
+	end case;
+*/
+
+-- 案例
+-- 创建存储过程。根据传入的成绩，来显示等级，
+DELIMITER $
+CREATE PROCEDURE test_case1(IN score INT)
+BEGIN
+	CASE
+	WHEN score BETWEEN 90 AND 100 THEN SELECT 'A';
+	WHEN score BETWEEN 80 AND 90 THEN SELECT 'B';
+	WHEN score BETWEEN 60 AND 80 THEN SELECT 'C';
+	ELSE SELECT 'D';
+	END CASE;
+END $
+CALL TEST_CASE1(80)
+```
+
+
+
+**3.IF结构**
+
+```sql
+/*
+功能：实现多重分支
+语法：
+if 条件1 then 语句1；
+elseif 条件2 then 语句2；
+...
+[else 语句n]
+end if;
+
+应用：begin end中
+*/
+
+-- 案例
+-- 创建存储过程。根据传入的成绩，来显示等级，
+DELIMITER $
+CREATE FUNCTION test_if1(score INT) RETURNS CHAR
+BEGIN
+	
+	IF score BETWEEN 90 AND 100 THEN RETURN 'A';
+	ELSEIF score BETWEEN 80 AND 90 THEN RETURN 'B';
+	ELSEIF score BETWEEN 60 AND 80 THEN RETURN 'C';
+	ELSE RETURN 'D';
+	END IF;
+END $
+SELECT TEST_if1(80)
+```
+
+### 循环结构
+
+**1.while**
+
+```sql
+/*
+语法：
+「标签：」while 循环条件 do
+	循环体；
+	end while「标签」；
+*/
+
+/*
+语法：
+「标签：」loop 
+	循环体；
+	end loop「标签」；
+	(可以用来模拟简单的死循环)
+*/
+
+
+/*
+语法：
+「标签：」repeat
+	循环体；
+	until 结束循环的条件
+	end repeat「标签」；
+*/
+
+-- 案例
+-- （没有添加循环控制语句）
+-- 批量插入，根据次数查入到admin表中多条记录
+DELIMITER $
+CREATE PROCEDURE test_11(IN account INT)
+BEGIN
+	DECLARE i INT DEFAULT 1;
+	WHILE i<=account DO
+	INSERT INTO admin(username,`password`) VALUES(concat('zhangsan',i),'12345');
+	SET i=i+1;
+	END WHILE;
+END $
+CALL test_11(10);
+SELECT * FROM admin
+
+-- 添加leave语句
+-- 批量插入，根据次数查入到admin表中多条记录，如果次数大于20停止
+DELIMITER $
+CREATE PROCEDURE test_12(IN account INT)
+BEGIN
+	DECLARE i INT DEFAULT 1;
+	a:WHILE i<=account DO
+	INSERT INTO admin(username,`password`) VALUES(concat('zhangsan',i),'12345');\
+	IF i>=20 THEN LEAVE a;
+	END IF;
+	SET i=i+1;
+	END WHILE a;
+END $
+CALL test_12(30);
+SELECT * FROM admin
+
+-- 添加iterate语句
+
+-- 批量插入，根据次数查入到admin表中多条记录，只插入偶数次
+TRUNCATE TABLE admin
+DELIMITER $
+CREATE PROCEDURE test_17(IN accout INT)
+BEGIN
+	DECLARE i INT DEFAULT 0;
+	a:WHILE(i<=accout) DO
+	SET i=i+1;
+	IF mod(i,2)!=0 THEN ITERATE a;
+	END IF;
+	INSERT INTO admin(`username`,`password`) VALUES(concat('xiaohua',i),'1111');
+	END WHILE a;
+END $
+CALL test_17(20)
+SELECT * FROM admin
+
+
+-- 已知表stringcontent,id子增长，content varchar(20)
+-- 向该表插入指定个数的，随机的字符串
+CREATE TABLE stringcontent
+(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+	content VARCHAR(20)
+)
+DELIMITER $
+CREATE PROCEDURE test_22(IN account INT)
+BEGIN
+	DECLARE i INT DEFAULT 0;
+	DECLARE len INT DEFAULT 1;
+	DECLARE startindex INT DEFAULT 1;
+	DECLARE str VARCHAR(26) DEFAULT 'abcdefghijklmnopqrstuvwsyz';
+	WHILE i<=account DO
+	SET startindex=floor(rand()*26+1);
+	SET len=floor(rand()*(26-startindex)+1);
+	IF len>20 THEN SET len=20;-- content最大长度是20varchar
+	END IF;
+	INSERT INTO stringcontent(content)VALUES(substring(str,startindex,len));
+	SET i=i+1;
+	END WHILE;
+	
+	
+END $
+CALL test_22(10)
+SELECT * FROM stringcontent;
+```
+
 
